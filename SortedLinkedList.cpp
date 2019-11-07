@@ -1,66 +1,80 @@
-#ifndef LINKED_LIST_
-#define LINKED_LIST_
+/* 
+ * File:   SortedLinkedList.h
+ * Author: Arman B.
+ *
+ * Created on November 5, 2019, 1:58 PM
+ */
 
-#include <memory>
+#ifndef SORTEDLINKEDLIST_H
+#define SORTEDLINKEDLIST_H
+
+
 #include "SortedListInterface.h"
 #include "Node.h"
 #include "PrecondViolatedExcep.h"
+#include <memory>
 #include <cassert>
+#include <iostream>
+using namespace std;
 
+
+                        ///*****  CLASS DEFINITION  *****///
 template<class ItemType>
 class SortedLinkedList : public SortedListInterface<ItemType>
 {
 private:
-   std::shared_ptr<Node<ItemType>> headPtr; // Pointer to first node in the chain;
-   ItemType firstEntry;                     // Contains the first entry in the list
-   Node<ItemType>* firstEntryPtr;			// Pointer to the first entry in the list
-   int itemCount;           // Current count of list items 
+    
+   shared_ptr<Node<ItemType>> head; // Pointer to first node in the chain;
+   int itemCount;                   // Current count of list items 
    
-   // Locates a specified node in this linked list.
-   // @pre  position is the number of the desired node;
-   //       position >= 1 and position <= itemCount.
-   // @post  The node is found and a pointer to it is returned.
-   // @param position  The number of the node to locate.
-   // @return  A pointer to the node at the given position.
    shared_ptr<Node<ItemType>> getNodeAt(int position) const;
 
 public:
    SortedLinkedList();
    SortedLinkedList(const SortedLinkedList<ItemType>& aList);
+//   SortedLinkedList(const SortedLinkedList<ItemType>& aList);
    virtual ~SortedLinkedList();
 
-   virtual bool insertSorted(const ItemType& newEntry) = 0;
-   virtual bool removeSorted(const ItemType& anEntry) = 0;
-   virtual int getPosition(const ItemType& anEntry) const = 0;
+   bool insertSorted(const ItemType& newEntry);
+   bool removeSorted(const ItemType& anEntry);
+   int getPosition(const ItemType& anEntry) const;
    
+   bool remove(int position);
    bool isEmpty() const;
    int getLength() const;
-   bool remove(int position);
    void clear();
-   ItemType getEntry(int position) const;   
-}; // end SortedLinkedList
+   ItemType getEntry(int position) const;  
+};
+#endif /* SORTEDLINKEDLIST_H */
 
 
+
+
+                        ///***** DEFAULT CONSTRUCTOR *****///
 template<class ItemType>
-SortedLinkedList<ItemType>::SortedLinkedList() : headPtr(nullptr), itemCount(0)
+SortedLinkedList<ItemType>::SortedLinkedList() : head(nullptr), itemCount(0)
 {
-}  // end default constructor
+    cout << "The object was created successfully" << endl;
+}
 
+
+                        ///***** COPY CONSTRUCTOR *****///
 template<class ItemType>
 SortedLinkedList<ItemType>::SortedLinkedList(const SortedLinkedList<ItemType>& aList) : itemCount(aList.itemCount)
+//SortedLinkedList<ItemType>::SortedLinkedList(const SortedLinkedList<ItemType>& aList) : itemCount(aList.itemCount)
 {
-    auto origChainPtr = aList.headPtr;  // Points to nodes in original chain
+    auto origChainPtr = aList.head;  // Points to nodes in original chain
     
     if (origChainPtr == nullptr)
-        headPtr.reset();  // Original list is empty
+        head.reset();  // Original list is empty
     else
     {
         // Copy first node
-        headPtr = std::make_shared<Node<ItemType>>();
-        headPtr->setItem(origChainPtr->getItem());
+        head = make_shared<Node<ItemType>>();
+        head->setItem(origChainPtr->getItem());
         
         // Copy remaining nodes
-        auto newChainPtr = headPtr;      // Points to last node in new chain
+        auto newChainPtr = head;      // Points to last node in new chain
         origChainPtr = origChainPtr->getNext();     // Advance original-chain pointer
         while (origChainPtr != nullptr)
         {
@@ -68,7 +82,7 @@ SortedLinkedList<ItemType>::SortedLinkedList(const SortedLinkedList<ItemType>& a
             ItemType nextItem = origChainPtr->getItem();
             
             // Create a new node containing the next item
-            auto newNodePtr = std::make_shared<Node<ItemType>>(nextItem);
+            auto newNodePtr = make_shared<Node<ItemType>>(nextItem);
             
             // Link new node to end of new chain
             newChainPtr->setNext(newNodePtr);
@@ -80,43 +94,58 @@ SortedLinkedList<ItemType>::SortedLinkedList(const SortedLinkedList<ItemType>& a
             origChainPtr = origChainPtr->getNext();
         }  // end while
         
-        newChainPtr->setNext(nullptr);              // Flag end of chain
-    }  // end if
-}  // end copy constructor
+        newChainPtr->setNext(nullptr);
+    }
+}
 
+
+                        ///***** DESTRUCTOR *****///
 template<class ItemType>
 SortedLinkedList<ItemType>::~SortedLinkedList()
 {
     clear();
-}  // end destructor
+} 
 
-template<class ItemType>
-bool SortedLinkedList<ItemType>::isEmpty() const
-{
-    return itemCount == 0;
-}  // end isEmpty
 
+                        ///*****  GET POSITION  *****///
 template<class ItemType>
-int SortedLinkedList<ItemType>::getLength() const
+int SortedLinkedList<ItemType>::getPosition(const ItemType& anEntry) const
 {
-    return itemCount;
-}  // end getLength
+    int position;
+    
+    position = 1;
 
+    auto curr = head;
+    while ( (position <= itemCount) && (anEntry > curr->getItem()) && curr != nullptr)
+    {
+        position++;
+        curr = curr->getNext();
+    }
+
+    if ( (position > itemCount) || (anEntry != curr->getItem()) )
+        position = -position;
+        
+    return position;    
+}
+
+
+                        ///*****  INSERT SORTED  *****///
 template<class ItemType>
-bool SortedLinkedList<ItemType>::insert(int newPosition, const ItemType& newEntry)
+bool SortedLinkedList<ItemType>::insertSorted(const ItemType& newEntry)
 {
+    int newPosition = abs(getPosition(newEntry));
     bool ableToInsert = (newPosition >= 1) && (newPosition <= itemCount + 1);
     if (ableToInsert)
     {
         // Create a new node containing the new entry
-        auto newNodePtr = std::make_shared<Node<ItemType>>(newEntry);
+        auto newNodePtr = make_shared<Node<ItemType>>(newEntry);
         
         // Attach new node to chain
         if (newPosition == 1)
         {
             // Insert new node at beginning of chain
-            newNodePtr->setNext(headPtr);
-            headPtr = newNodePtr;
+            newNodePtr->setNext(head);
+            head = newNodePtr;
         }
         else
         {
@@ -132,8 +161,30 @@ bool SortedLinkedList<ItemType>::insert(int newPosition, const ItemType& newEntr
     }  // end if
     
     return ableToInsert;
-}  // end insert
+}                  
 
+
+                        ///*****  REMOVE SORTED *****///
+template<class ItemType>
+bool SortedLinkedList<ItemType>::removeSorted(const ItemType& anEntry)
+{
+    bool ableToRemove = false;
+    if (!isEmpty())
+    {
+        int position = getPosition(anEntry);
+        
+        ableToRemove = position > 0;
+        if (ableToRemove)
+        {
+            ableToRemove = remove(position);
+        }
+    }
+    
+    return ableToRemove;
+}
+
+
+                        ///*****  REMOVE  *****///
 template<class ItemType>
 bool SortedLinkedList<ItemType>::remove(int position)
 {
@@ -143,7 +194,7 @@ bool SortedLinkedList<ItemType>::remove(int position)
         if (position == 1)
         {
             // Remove the first node in the chain
-            headPtr = headPtr->getNext();
+            head = head->getNext();
         }
         else
         {
@@ -162,16 +213,10 @@ bool SortedLinkedList<ItemType>::remove(int position)
     }  // end if
     
     return ableToRemove;
-}  // end remove
+}
 
-template<class ItemType>
-void SortedLinkedList<ItemType>::clear()
-{
-    headPtr.reset();
-    // headPtr = nullptr; // is OK also
-    itemCount = 0;
-}  // end clear
 
+                        ///*****  GET ENTRY  *****///
 template<class ItemType>
 ItemType SortedLinkedList<ItemType>::getEntry(int position) const
 {
@@ -184,43 +229,46 @@ ItemType SortedLinkedList<ItemType>::getEntry(int position) const
     }
     else
     {
-        std::string message = "getEntry() called with an empty list or ";
+        string message = "getEntry() called with an empty list or ";
         message  = message + "invalid position.";
         throw(PrecondViolatedExcep(message));
-    }  // end if
-}  // end getEntry
-
-template<class ItemType>
-void SortedLinkedList<ItemType>::replace(int position, const ItemType& newEntry)
-{
-    // Enforce precondition
-    bool ableToSet = (position >= 1) && (position <= itemCount);
-    if (ableToSet)
-    {
-        auto nodePtr = getNodeAt(position);
-        nodePtr->setItem(newEntry);
     }
-    else
-    {
-        // auto gives const string literal
-        auto message = "replace() called with an invalid position.";
-        throw(PrecondViolatedExcep(message));
-    }  // end if
-}  // end replace
+}
 
+                        ///*****  GET NODE AT  *****///
 template<class ItemType>
-std::shared_ptr<Node<ItemType>> SortedLinkedList<ItemType>::getNodeAt(int position) const
+shared_ptr<Node<ItemType>> SortedLinkedList<ItemType>::getNodeAt(int position) const
 {
     // Debugging check of precondition
     assert( (position >= 1) && (position <= itemCount) );
     
     // Count from the beginning of the chain
-    auto curPtr = headPtr;
+    auto curPtr = head;
     for (int skip = 1; skip < position; skip++)
         curPtr = curPtr->getNext();
     
     return curPtr;
-}  // end getNodeAt
-//  End of implementation file.
+}
 
-#endif 
+
+                        ///*****  CLEAR  *****///
+template<class ItemType>
+void SortedLinkedList<ItemType>::clear()
+{
+    head.reset();
+    itemCount = 0;
+}
+
+                        ///*****  isEMPTY?  *****///
+template<class ItemType>
+bool SortedLinkedList<ItemType>::isEmpty() const
+{
+    return itemCount == 0;
+}
+
+                        ///*****  GET LENGTH  *****///
+template<class ItemType>
+int SortedLinkedList<ItemType>::getLength() const
+{
+    return itemCount;
+}
